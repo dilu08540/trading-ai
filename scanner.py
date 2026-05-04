@@ -28,10 +28,8 @@ def get_asset_type(symbol):
         return "stocks"
 
 def get_market_data(symbol):
-    def get_market_data(symbol):
     data = yf.download(symbol, period="7d", interval="1h")
 
-    # FIX colonne multi-index
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
 
@@ -39,9 +37,6 @@ def get_market_data(symbol):
     return data
 
 def add_indicators(data):
-    def add_indicators(data):
-
-    # FIX: assicurati che Close sia 1D
     close = data["Close"]
 
     if isinstance(close, pd.DataFrame):
@@ -52,17 +47,16 @@ def add_indicators(data):
     data["ema200"] = close.ewm(span=200).mean()
 
     return data
-    data["ema50"] = data["Close"].ewm(span=50).mean()
-    data["ema200"] = data["Close"].ewm(span=200).mean()
-    return data
 
 def get_trend(data):
     last = data.iloc[-1]
+
     if last["ema50"] > last["ema200"]:
         return "bullish"
     elif last["ema50"] < last["ema200"]:
         return "bearish"
-    return "sideways"
+    else:
+        return "sideways"
 
 def generate_signal(data, trend, asset_type):
     profile = ASSET_PROFILES[asset_type]
@@ -72,16 +66,22 @@ def generate_signal(data, trend, asset_type):
     price = last["Close"]
 
     if trend == "bullish" and rsi < profile["rsi_buy"]:
-        return {"signal":"BUY","entry":price,
-                "sl":price*(1-0.02*profile["volatility"]),
-                "tp":price*(1+0.04*profile["volatility"])}
+        return {
+            "signal": "BUY",
+            "entry": price,
+            "sl": price * (1 - 0.02 * profile["volatility"]),
+            "tp": price * (1 + 0.04 * profile["volatility"])
+        }
 
     elif trend == "bearish" and rsi > profile["rsi_sell"]:
-        return {"signal":"SELL","entry":price,
-                "sl":price*(1+0.02*profile["volatility"]),
-                "tp":price*(1-0.04*profile["volatility"])}
+        return {
+            "signal": "SELL",
+            "entry": price,
+            "sl": price * (1 + 0.02 * profile["volatility"]),
+            "tp": price * (1 - 0.04 * profile["volatility"])
+        }
 
-    return {"signal":"NO TRADE"}
+    return {"signal": "NO TRADE"}
 
 def score_trade(signal, rsi, trend, data):
     if signal["signal"] == "NO TRADE":
