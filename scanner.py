@@ -28,12 +28,30 @@ def get_asset_type(symbol):
         return "stocks"
 
 def get_market_data(symbol):
+    def get_market_data(symbol):
     data = yf.download(symbol, period="7d", interval="1h")
+
+    # FIX colonne multi-index
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.get_level_values(0)
+
     data.dropna(inplace=True)
     return data
 
 def add_indicators(data):
-    data["rsi"] = RSIIndicator(data["Close"]).rsi()
+    def add_indicators(data):
+
+    # FIX: assicurati che Close sia 1D
+    close = data["Close"]
+
+    if isinstance(close, pd.DataFrame):
+        close = close.squeeze()
+
+    data["rsi"] = RSIIndicator(close).rsi()
+    data["ema50"] = close.ewm(span=50).mean()
+    data["ema200"] = close.ewm(span=200).mean()
+
+    return data
     data["ema50"] = data["Close"].ewm(span=50).mean()
     data["ema200"] = data["Close"].ewm(span=200).mean()
     return data
